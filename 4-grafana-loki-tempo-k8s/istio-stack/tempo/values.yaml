@@ -1,0 +1,97 @@
+traces:
+  otlp:
+    http:
+      enabled: true
+    grpc:
+      enabled: true
+
+storage:
+  trace:
+    backend: s3
+    s3:
+      bucket: tempo-traces
+      endpoint: minio-minio-instance-hl.minio.svc.cluster.local:9000
+      access_key: ${S3_ACCESS_KEY}
+      secret_key: ${S3_SECRET_KEY}
+      insecure: true  # Because MinIO typically runs without TLS
+
+distributor:
+  extraArgs:
+    - "-config.expand-env=true"
+  extraEnv:
+    - name: S3_ACCESS_KEY
+      valueFrom:
+        secretKeyRef:
+          name: tempo-minio-creds
+          key: access_key_id
+    - name: S3_SECRET_KEY
+      valueFrom:
+        secretKeyRef:
+          name: tempo-minio-creds
+          key: secret_access_key
+
+compactor:
+  extraArgs:
+    - "-config.expand-env=true"
+  extraEnv:
+    - name: S3_ACCESS_KEY
+      valueFrom:
+        secretKeyRef:
+          name: tempo-minio-creds
+          key: access_key_id
+    - name: S3_SECRET_KEY
+      valueFrom:
+        secretKeyRef:
+          name: tempo-minio-creds
+          key: secret_access_key
+
+ingester:
+  extraArgs:
+    - "-config.expand-env=true"
+  extraEnv:
+    - name: S3_ACCESS_KEY
+      valueFrom:
+        secretKeyRef:
+          name: tempo-minio-creds
+          key: access_key_id
+    - name: S3_SECRET_KEY
+      valueFrom:
+        secretKeyRef:
+          name: tempo-minio-creds
+          key: secret_access_key
+
+querier:
+  extraArgs:
+    - "-config.expand-env=true"
+  extraEnv:
+    - name: S3_ACCESS_KEY
+      valueFrom:
+        secretKeyRef:
+          name: tempo-minio-creds
+          key: access_key_id
+    - name: S3_SECRET_KEY
+      valueFrom:
+        secretKeyRef:
+          name: tempo-minio-creds
+          key: secret_access_key
+
+queryFrontend:
+  extraArgs:
+    - "-config.expand-env=true"
+  extraEnv:
+    - name: S3_ACCESS_KEY
+      valueFrom:
+        secretKeyRef:
+          name: tempo-minio-creds
+          key: access_key_id
+    - name: S3_SECRET_KEY
+      valueFrom:
+        secretKeyRef:
+          name: tempo-minio-creds
+          key: secret_access_key
+
+metaMonitoring:
+  serviceMonitor:
+    enabled: true
+    labels:
+      prometheus: system
