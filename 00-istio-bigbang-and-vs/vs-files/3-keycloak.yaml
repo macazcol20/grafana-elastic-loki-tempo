@@ -1,0 +1,65 @@
+apiVersion: networking.istio.io/v1alpha3
+kind: VirtualService
+metadata:
+  name: keycloak
+  namespace: cafanwi
+spec:
+  hosts:
+  - 'keycloak.s3gis.be'
+  gateways:
+  - istio-system/cafanwi-gateway
+  http:
+  - match:
+    - uri:
+        prefix: /
+    corsPolicy:
+      allowOrigin:
+      - "https://apps-dashboard.s3gis.be"
+      allowMethods:
+      - POST
+      - GET
+      - OPTIONS
+      - PUT
+      - DELETE
+      allowHeaders:
+      - Authorization
+      - Content-Type
+      - X-Requested-With
+      - Origin
+      exposeHeaders:
+      - "*"
+      maxAge: "24h"
+      allowCredentials: true
+    retries:
+      attempts: 3
+      perTryTimeout: 2s
+    route:
+    - destination:
+        host: cafanwi-keycloak-http
+        port:
+          number: 80
+
+
+# apiVersion: networking.istio.io/v1alpha3
+# kind: VirtualService
+# metadata:
+#   labels:
+#   name: keycloak
+#   namespace: cafanwi
+# spec:
+#   gateways:
+#   - istio-system/cafanwi-gateway
+#   hosts:
+#   - 'keycloak.s3gis.be'
+#   http:
+#   - retries:
+#       attempts: 3
+#       perTryTimeout: 2s
+#     match:
+#     - uri:
+#         prefix: /
+#     route:
+#     - destination:
+#         host: cafanwi-keycloak-http
+#         port:
+#           number: 80

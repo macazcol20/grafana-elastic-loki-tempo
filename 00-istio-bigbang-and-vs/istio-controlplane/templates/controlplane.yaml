@@ -1,0 +1,192 @@
+apiVersion: install.istio.io/v1alpha1
+kind: IstioOperator
+metadata:
+  name: istiocontrolplane{{- if not (eq .Values.revision "") }}-{{ .Values.revision }}{{- end }}
+  namespace: {{ .Release.Namespace }}
+spec:
+  profile: {{ .Values.profile }}
+  {{- if .Values.enterprise }}
+  hub: {{ .Values.tidHub }}
+  tag: {{ .Values.tidTag }}
+  {{ else }}
+  hub: {{ .Values.hub }}
+  tag: {{ .Values.tag }}
+  {{- end }}
+{{- if not (eq .Values.revision "") }}
+  revision: {{ .Values.revision }}
+{{- end }}
+  components:
+    pilot:
+      k8s:
+        env:
+          {{- toYaml .Values.istiod.env | nindent 10 }}
+{{- if and .Values.istiod.hpaSpec.maxReplicas .Values.istiod.hpaSpec.minReplicas }}
+        hpaSpec:
+          maxReplicas: {{ .Values.istiod.hpaSpec.maxReplicas }}
+          minReplicas: {{ .Values.istiod.hpaSpec.minReplicas }}
+          scaleTargetRef:
+            apiVersion: apps/v1
+            kind: Deployment
+            name: istiod{{- if not (eq .Values.revision "") }}-{{ .Values.revision }}{{- end }}
+          metrics:
+            {{- toYaml .Values.istiod.hpaSpec.metrics | nindent 12 }}
+{{- end }}
+        replicaCount: {{ .Values.istiod.replicaCount }}
+        securityContext:
+          runAsNonRoot: true
+          runAsGroup: 1337
+          runAsUser: 1337
+        resources:
+          {{- toYaml .Values.istiod.resources | nindent 10 }}
+        strategy:
+          {{- toYaml .Values.istiod.strategy | nindent 10 }}
+        serviceAnnotations:
+          {{- .Values.istiod.serviceAnnotations | default (dict) | toYaml | nindent 10 }}
+        podAnnotations:
+          {{- .Values.istiod.podAnnotations | default (dict) | toYaml | nindent 10 }}
+        nodeSelector:
+          {{- .Values.istiod.nodeSelector | default (dict) | toYaml | nindent 10 }}
+        affinity:
+          {{- .Values.istiod.affinity | default (dict) | toYaml | nindent 10 }}
+        tolerations:
+          {{- .Values.istiod.tolerations | default (list) | toYaml | nindent 10 }}
+        overlays:
+          - apiVersion: apps/v1
+            kind: Deployment
+            name: istiod
+            patches:
+              - path: "spec.template.metadata.labels.version"
+                value: {{ .Chart.AppVersion | quote }}
+    {{- if .Values.openshift }}
+    {{- with .Values.cni }}
+    cni:
+      enabled: true
+      namespace: kube-system
+      k8s:
+        podAnnotations:
+          {{- .podAnnotations | default (dict) | toYaml | nindent 10 }}
+        nodeSelector:
+          {{- .nodeSelector | default (dict) | toYaml | nindent 10 }}
+        tolerations:
+          {{- .tolerations | default (list) | toYaml | nindent 10 }}
+        affinity:
+          {{- .affinity | default (dict) | toYaml | nindent 10 }}
+    {{- end }}
+    {{- end }}
+    ingressGateways:
+    {{- if .Values.ingressgateway }}
+    {{- required "`ingressgateway` value has been deprecated.  Please use the new format in the `ingressGateways` value." "" }}
+    {{- end }}
+    {{- range $name, $values := .Values.ingressGateways }}
+    - name: {{ $name }}
+      namespace: {{ $.Release.Namespace }}
+      enabled: {{ if eq (toString $values.enabled) "<nil>" }}true{{ else }}{{ $values.enabled }}{{ end }}
+      label:
+        app: {{ $name }}
+        istio: ingressgateway
+        {{- if $values.extraLabels }}
+          {{- toYaml $values.extraLabels | nindent 8 }}
+        {{- end }}
+      k8s:
+        {{- toYaml $values.k8s | nindent 8 }}
+        overlays:
+          - apiVersion: apps/v1
+            kind: Deployment
+            name: {{ $name }}
+            patches:
+              - path: "spec.template.metadata.labels.version"
+                value: {{ $.Chart.AppVersion | quote }}
+    {{- end }}
+    egressGateways:
+    {{- range $name, $values := .Values.egressGateways }}
+    - name: {{ $name }}
+      namespace: {{ $.Release.Namespace }}
+      enabled: {{ if eq (toString $values.enabled) "<nil>" }}true{{ else }}{{ $values.enabled }}{{ end }}
+      label:
+        app: {{ $name }}
+        istio: egressgateway
+        {{- if $values.extraLabels }}
+          {{- toYaml $values.extraLabels | nindent 8 }}
+        {{- end }}
+      k8s:
+        {{- toYaml $values.k8s | nindent 8 }}
+        overlays:
+          - apiVersion: apps/v1
+            kind: Deployment
+            name: {{ $name }}
+            patches:
+              - path: "spec.template.metadata.labels.version"
+                value: {{ $.Chart.AppVersion | quote }}
+    {{- end }}
+  meshConfig:
+    accessLogFile: /dev/stdout
+    enableTracing: {{ .Values.tracing.enabled }}
+    {{- if .Values.authservice.enabled }}
+    extensionProviders:
+      - name: "authservice"
+        envoyExtAuthzGrpc:
+          service: "authservice.authservice.svc.cluster.local"
+          port: "10003"
+    {{- end }}
+    defaultConfig:
+      tracing:
+        sampling: {{ .Values.tracing.sampling }}
+        zipkin:
+          address: {{ .Values.tracing.address }}:{{.Values.tracing.port}}
+      holdApplicationUntilProxyStarts: true
+    {{- if .Values.defaultConfig }}
+    {{- toYaml .Values.defaultConfig | nindent 6 }}
+    {{- end }}
+    {{- if .Values.meshConfig }}
+    {{- toYaml .Values.meshConfig | nindent 4 }}
+    {{- end }}
+
+  values:
+    {{- if .Values.values.pilot }}
+    pilot:
+      {{- toYaml .Values.values.pilot | nindent 6 }}
+    {{- end }}
+    {{- if .Values.openshift }}
+    cni:
+      repair:
+        enabled: false
+      image: {{ .Values.cni.image.name }}
+      {{- if .Values.enterprise }}
+      hub: {{ .Values.tidHub }}
+      tag: {{ .Values.tidTag }}
+      {{ else }}
+      hub: {{ .Values.cni.image.hub }}
+      tag: {{ .Values.cni.image.tag }}
+      {{- end }}
+      cniBinDir: {{ .Values.cni.binDir | default "/var/lib/cni/bin" }}
+      cniConfDir: {{ .Values.cni.confDir | default "/etc/cni/multus/net.d" }}
+      chained: false
+      cniConfFileName: {{ .Values.cni.confFileName | default "istio-cni.conf" }}
+      excludeNamespaces:
+       - istio-system
+       - kube-system
+      logLevel: {{ .Values.cni.logLevel | default "info" }}
+    {{- end }}
+    global:
+      {{- if .Values.imagePullPolicy }}
+      imagePullPolicy: {{ .Values.imagePullPolicy }}
+      {{- end }}
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- if .Values.tracing.enabled }}
+      tracer:
+        zipkin:
+          address: {{ .Values.tracing.address }}:{{.Values.tracing.port}}
+      {{ end }}
+      {{- if .Values.values.global }}
+      {{- toYaml .Values.values.global | nindent 6 }}
+      {{- end }}
+    defaultRevision: {{ .Values.values.defaultRevision }}
+    sidecarInjectorWebhook:
+      rewriteAppHTTPProbe: true
+      {{- if .Values.openshift }}
+      injectedAnnotations:
+        k8s.v1.cni.cncf.io/networks: istio-cni
+      {{- end }}

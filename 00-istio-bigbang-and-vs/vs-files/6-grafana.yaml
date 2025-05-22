@@ -1,0 +1,19 @@
+apiVersion: networking.istio.io/v1beta1
+kind: VirtualService
+metadata:
+  name: grafana
+  namespace: prometheus
+spec:
+  gateways:
+    - istio-system/cafanwi-gateway
+  hosts:
+    - grafana.s3gis.be
+  http:
+    - match:
+        - uri:
+            prefix: /
+      route:
+        - destination:
+            host: prom-grafana.prometheus.svc.cluster.local
+            port:
+              number: 80

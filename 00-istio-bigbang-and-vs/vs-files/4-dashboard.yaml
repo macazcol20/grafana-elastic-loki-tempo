@@ -1,0 +1,32 @@
+apiVersion: networking.istio.io/v1beta1
+kind: VirtualService
+metadata:
+  name: app-catalog
+  namespace: cafanwi
+spec:
+  hosts:
+    - apps-dashboard.s3gis.be
+  gateways:
+    - istio-system/cafanwi-gateway 
+  http:
+    - match:
+        - uri:
+            prefix: /
+      route:
+        - destination:
+            host: app-catalog.cafanwi.svc.cluster.local
+            port:
+              number: 80
+      corsPolicy:
+        allowOrigin:
+          - "*"
+        allowMethods:
+          - GET
+          - POST
+          - OPTIONS
+        allowHeaders:
+          - "*"
+        exposeHeaders:
+          - "*"
+        maxAge: "24h"
+        allowCredentials: true

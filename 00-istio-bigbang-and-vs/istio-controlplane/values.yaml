@@ -1,0 +1,366 @@
+# -- The istio profile to use
+profile: default
+
+# -- The hub to use for all images, images are built as ".Values.hub/COMPONENT_NAME:.Values.tag"
+hub: registry1.dso.mil/ironbank/opensource/istio
+# -- The tag to use for all images
+tag: 1.23.2
+
+# -- Tetrate Istio Distribution - Tetrate provides FIPs verified Istio and Envoy software and support,
+# validated through the FIPs Boring Crypto module.
+# Find out more from Tetrate - https://www.tetrate.io/tetrate-istio-subscription
+enterprise: false
+tidHub: registry1.dso.mil/ironbank/tetrate/istio
+tidTag: 1.23.2-tetratefips-v0
+
+# -- The domain to use for the default gateway
+domain: s3gis.be
+
+mtls:
+  # -- STRICT = Allow only mutual TLS traffic,
+  # PERMISSIVE = Allow both plain text and mutual TLS traffic
+  mode: STRICT
+
+# -- Revision of the Istio control plane
+revision: ""
+
+# -- Openshift feature switch toggle
+openshift: false
+
+imagePullSecrets: 
+- private-registry
+
+# -- Big Bang Monitoring interaction controls
+monitoring:
+  # -- Toggle monitoring on/off (controls networkPolicies)
+  enabled: false
+
+# -- Big Bang Kiali interaction controls
+kiali:
+  # -- Toggle kiali on/off (controls networkPolicies)
+  enabled: false
+
+# -- If authservice is enabled, it will be added to extension providers as an external authorization system.
+# https://istio.io/latest/docs/tasks/security/authorization/authz-custom/
+authservice:
+  enabled: false
+
+# -- Ingress gateways,
+# The following items are automatically set for every ingress gateway:
+# - label: "app: {name of ingress gateway}"
+ingressGateways:
+  # -- This key becomes the name of the ingressGateway
+  istio-ingressgateway:
+    enabled: true
+    # -- Labels to use for selecting the ingress gateway from the service
+    # Automatic labels: 'app: {ingress gateway name}' and `istio: ingressgateway`
+    extraLabels: {}
+    # -- Set any value from https://istio.io/latest/docs/reference/config/istio.operator.v1alpha1/#KubernetesResourcesSpec
+    k8s:
+      # hpaSpec:  By default, HPA is set from 1-5 instances with a target average utilization of 80%
+      resources: {}
+      service:
+        # -- "LoadBalancer" or "NodePort"
+        type: "LoadBalancer"
+        # ports: By default ports 15021 (status), 80, 443, and 15443 (SNI Routing) are setup
+      # -- https://kubernetes.io/docs/concepts/overview/working-with-objects/annotations/
+      podAnnotations: {}
+      # -- https://kubernetes.io/docs/concepts/overview/working-with-objects/annotations/
+      serviceAnnotations:
+          service.beta.kubernetes.io/aws-load-balancer-type: "external"
+          service.beta.kubernetes.io/aws-load-balancer-nlb-target-type: "ip"
+          service.beta.kubernetes.io/aws-load-balancer-scheme: "internet-facing" # internal
+          service.beta.kubernetes.io/aws-load-balancer-attributes: "load_balancing.cross_zone.enabled=true"
+          # service.beta.kubernetes.io/aws-load-balancer-ssl-cert: arn:aws:acm:us-west-2:xxxx
+      # -- https://kubernetes.io/docs/concepts/configuration/assign-pod-node/#nodeselector
+      nodeSelector: {}
+      # -- https://kubernetes.io/docs/concepts/scheduling-eviction/assign-pod-node/#affinity-and-anti-affinity
+      affinity: {}
+      # -- https://kubernetes.io/docs/concepts/configuration/taint-and-toleration/
+      tolerations: []
+
+  # # Complete example of an additional ingressgateway defined below
+  # private-ingressgateway:  # This becomes the name
+  #   # Labels to use for selecting the ingress gateway from the service
+  #   extraLabels: {} # Automatic labels: 'app: {ingress gateway name}'
+  #   k8s: # Set any value from https://istio.io/latest/docs/reference/config/istio.operator.v1alpha1/#KubernetesResourcesSpec
+  #     # hpaSpec:  By default, HPA is set from 1-5 instances with a target average utilization of 80%
+  #     resources: {}
+  #       # requests:
+  #       #   cpu: 500m
+  #       #   memory: 1Gi
+  #       # limits:
+  #       #   cpu: 1.5
+  #       #   memory: 3Gi
+  #     service:
+  #       type: "LoadBalancer" # or "NodePort"
+  #       # ports: By default ports 15021 (status), 80, 443, and 15443 (SNI Routing) are setup
+  #     podAnnotations: {} # https://kubernetes.io/docs/concepts/overview/working-with-objects/annotations/
+  #     serviceAnnotations: {} # https://kubernetes.io/docs/concepts/overview/working-with-objects/annotations/
+  #     nodeSelector: {} # https://kubernetes.io/docs/concepts/configuration/assign-pod-node/#nodeselector
+  #     affinity: {} # https://kubernetes.io/docs/concepts/scheduling-eviction/assign-pod-node/#affinity-and-anti-affinity
+  #     tolerations: [] # https://kubernetes.io/docs/concepts/configuration/taint-and-toleration/
+
+# -- Egress gateways,
+# The following items are automatically set for every egress gateway:
+# - label: "app: {name of egress gateway}"
+egressGateways:
+  # -- This key becomes the name of the egressGateway
+  istio-egressgateway:
+    enabled: false
+    # -- Labels to use for selecting the egress gateway from the service
+    # Automatic labels: 'app: {egress gateway name}' and `istio: egressgateway`
+    extraLabels: {}
+    # -- Set any value from https://istio.io/latest/docs/reference/config/istio.operator.v1alpha1/#KubernetesResourcesSpec
+    k8s:
+      # hpaSpec:  By default, HPA is set from 1-5 instances with a target average utilization of 80%
+      resources: {}
+      service:
+        # -- "LoadBalancer" or "NodePort"
+        type: "LoadBalancer"
+        # ports: By default ports 15021 (status), 80, 443, and 15443 (SNI Routing) are setup
+      # -- https://kubernetes.io/docs/concepts/overview/working-with-objects/annotations/
+      podAnnotations: {}
+      # -- https://kubernetes.io/docs/concepts/overview/working-with-objects/annotations/
+      serviceAnnotations: {}
+      # -- https://kubernetes.io/docs/concepts/configuration/assign-pod-node/#nodeselector
+      nodeSelector: {}
+      # -- https://kubernetes.io/docs/concepts/scheduling-eviction/assign-pod-node/#affinity-and-anti-affinity
+      affinity: {}
+      # -- https://kubernetes.io/docs/concepts/configuration/taint-and-toleration/
+      tolerations: []
+
+# -- See https://istio.io/latest/docs/reference/config/networking/gateway/#Gateway for spec
+gateways:
+  # -- This key becomes the name of the gateway
+  cafanwi-gateway:
+    # -- Controls default HTTP/8080 server entry with HTTP to HTTPS Redirect. Must add in HTTP server config if disabling.
+    autoHttpRedirect:
+      enabled: true
+    selector:
+      app: "istio-ingressgateway"
+    servers:
+    - hosts:
+      - "*.{{ .Values.domain }}"
+      port:
+        name: https
+        number: 8443
+        protocol: HTTPS
+      tls:
+        credentialName: "istiogw-certs"
+        mode: "SIMPLE"
+  # # Example of adding additional gateways
+  # private:
+  #   autoHttpRedirect: # HTTP redirect to HTTPS is automatically added for all hosts when enabled
+  #     enabled: true
+  #   selector:
+  #     app: "private-istio-ingressgateway"
+  #   servers:
+  #   - hosts:
+  #     - "mypackage.{{ .Values.domain }}"
+  #     port:
+  #       name: http2
+  #       number: 8443
+  #       protocol: HTTPS
+  #     tls:
+  #       credentialName: "some-secret"
+  #       mode: "SIMPLE"
+
+# -- istiod / pilot configuration
+istiod:
+  replicaCount: 1
+  resources:
+    requests:
+      cpu: 500m
+      memory: 2Gi
+    limits:
+      cpu: 500m
+      memory: 2Gi
+  env: []
+  hpaSpec:
+    maxReplicas: 3
+    minReplicas: 1
+    metrics:
+      - type: Resource
+        resource:
+          name: cpu
+          target:
+            type: Utilization
+            averageUtilization: 60
+  strategy: {}
+  # -- k8s pod annotations. https://kubernetes.io/docs/concepts/overview/working-with-objects/annotations/
+  podAnnotations: {}
+  # -- k8s service annotations. https://kubernetes.io/docs/concepts/overview/working-with-objects/annotations/
+  serviceAnnotations: {}
+  # -- k8s nodeSelector. https://kubernetes.io/docs/concepts/configuration/assign-pod-node/#nodeselector
+  nodeSelector: {}
+  # -- k8s affinity / anti-affinity. https://kubernetes.io/docs/concepts/scheduling-eviction/assign-pod-node/#affinity-and-anti-affinity
+  affinity: {}
+  # -- k8s toleration https://kubernetes.io/docs/concepts/configuration/taint-and-toleration/
+  tolerations: []
+
+tracing:
+  enabled: false
+  address: jaeger-collector.jaeger.svc
+  port: 9411
+  # -- percent of traces to send to jaeger
+  sampling: 10
+
+cni:
+  image:
+    hub: registry1.dso.mil/ironbank/opensource/istio
+    name: install-cni
+    tag: 1.23.2
+  # -- k8s pod annotations. https://kubernetes.io/docs/concepts/overview/working-with-objects/annotations/
+  podAnnotations: {}
+  # -- k8s nodeSelector. https://kubernetes.io/docs/concepts/configuration/assign-pod-node/#nodeselector
+  nodeSelector: {}
+  # -- k8s affinity / anti-affinity. https://kubernetes.io/docs/concepts/scheduling-eviction/assign-pod-node/#affinity-and-anti-affinity
+  affinity: {}
+  # -- k8s toleration https://kubernetes.io/docs/concepts/configuration/taint-and-toleration/
+  tolerations: []
+
+# -- Global mesh-wide settings https://istio.io/latest/docs/reference/config/istio.mesh.v1alpha1/#MeshConfig
+meshConfig:
+  enableAutoMtls: true # Enforce auto mTLS
+  outboundTrafficPolicy:
+    mode: REGISTRY_ONLY # Restricts egress traffic
+  defaultConfig:
+    proxyMetadata:
+      ISTIO_META_TLS_MINIMUM_PROTOCOL_VERSION: TLSv1_2
+
+# -- Default Proxy Config for the entire mesh (inserts under meshConfig in IstioOperator resource)
+defaultConfig: {}
+
+values:
+  # -- Global IstioOperator values
+  global: 
+    proxy:
+      resources:
+        requests:
+          cpu: 100m
+          memory: 256Mi
+        limits:
+          cpu: 100m
+          memory: 256Mi
+    proxy_init:
+      resources:
+        limits:
+          cpu: 100m
+          memory: 256Mi
+        requests:
+          cpu: 100m
+          memory: 256Mi
+  # -- Set defaultRevision name, must be non-empty to deploy validating webhook
+  defaultRevision: "default"
+  # -- Istio pilot values. https://github.com/istio/istio/blob/master/manifests/charts/istio-control/istio-discovery/values.yaml
+  pilot:
+    env:
+      "ENABLE_NATIVE_SIDECARS": true
+    # # For example, include a custom CA certificate for the JWKS URI resolver
+    # jwksResolverExtraRootCA: |
+    #   -----BEGIN CERTIFICATE-----
+    #   ...
+    #   -----END CERTIFICATE-----
+
+# -- Custom EnvoyFilters. https://istio.io/latest/docs/reference/config/networking/envoy-filter/
+envoyFilters: []
+  # # For each filter, specify `name` and `spec` fields
+  # # For example, gzip html and json responses
+  # - name: compressor
+  #   spec:
+  #     workloadSelector:
+  #       labels:
+  #         istio: ingressgateway
+  #     configPatches:
+  #     - applyTo: HTTP_FILTER
+  #       match:
+  #         context: GATEWAY
+  #         proxy:
+  #           proxyVersion: '^1\.17.*'
+  #         listener:
+  #           filterChain:
+  #             filter:
+  #               name: "envoy.filters.network.http_connection_manager"
+  #               subFilter:
+  #                 name: "envoy.filters.http.router"
+  #       patch:
+  #         operation: INSERT_BEFORE
+  #         value:
+  #           name: envoy.filters.http.compressor
+  #           typed_config:
+  #             "@type": type.googleapis.com/envoy.extensions.filters.http.compressor.v3.Compressor
+  #             response_direction_config:
+  #               common_config:
+  #                 min_content_length: 100
+  #                 content_type:
+  #                   - text/html
+  #                   - application/json
+  #               disable_on_etag_header: true
+  #             request_direction_config:
+  #               common_config:
+  #                 enabled:
+  #                   default_value: false
+  #                   runtime_key: request_compressor_enabled
+  #             compressor_library:
+  #               name: text_optimized
+  #               typed_config:
+  #                 "@type": type.googleapis.com/envoy.extensions.compression.gzip.compressor.v3.Gzip
+  #                 memory_level: 3
+  #                 window_bits: 10
+  #                 compression_level: BEST_COMPRESSION
+  #                 compression_strategy: DEFAULT_STRATEGY
+
+# -- Big Bang NetworkPolicy controls
+networkPolicies:
+  # -- Toggle ALL NetworkPolicies on/off
+  enabled: false
+  # -- See `kubectl cluster-info` and then resolve to IP
+  controlPlaneCidr: 0.0.0.0/0
+  additionalPolicies: []
+
+postInstallHook:
+  # -- Image used to run readiness check, requires `kubectl`
+  image: registry1.dso.mil/ironbank/big-bang/base
+  tag: 2.1.0
+  # -- Pod security context for readiness check
+  securityContext:
+    fsGroup: 1001
+    runAsGroup: 1001
+    runAsNonRoot: true
+    runAsUser: 1001
+  # -- Container security context for readiness check
+  containerSecurityContext:
+    capabilities:
+      drop:
+        - ALL
+  # Container Resource Requests
+  containerResources:
+    resources:
+      requests:
+        cpu: "100m"
+        memory: "256Mi"
+      limits:
+        cpu: "100m"
+        memory: "256Mi"
+
+hardened:
+  enabled: false
+  customAuthorizationPolicies: []
+  # - name: "allow-nothing"
+  #   enabled: true
+  #   spec: {}
+  ingressGateway:
+    authzRules:
+      - {}
+
+waitJob:
+  enabled: true
+  scripts:
+    image: registry1.dso.mil/ironbank/opensource/kubernetes/kubectl:v1.30.5
+  permissions:
+    resources:
+     - istio-controlplane
+
+defaultSecurityHeaders:
+  enabled: true

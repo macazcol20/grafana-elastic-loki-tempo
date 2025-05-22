@@ -1,0 +1,23 @@
+apiVersion: networking.istio.io/v1alpha3
+kind: VirtualService
+metadata:
+  labels:
+  name: vault
+  namespace: vault
+spec:
+  gateways:
+  - istio-system/cafanwi-gateway
+  hosts:
+  - 'vault.s3gis.be'
+  http:
+  - retries:
+      attempts: 3
+      perTryTimeout: 2s
+    match:
+    - uri:
+        prefix: /
+    route:
+    - destination:
+        host: vault
+        port:
+          number: 8200
